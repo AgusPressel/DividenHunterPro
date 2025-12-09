@@ -41,13 +41,40 @@ from typing import Optional, Dict, List
 import sys
 import os
 
-# Configurar logging
+# Configurar logging con UTF-8 para evitar errores de codificación en Windows
+# Usar un handler personalizado que maneje UTF-8 correctamente
+class UTF8StreamHandler(logging.StreamHandler):
+    """Handler que fuerza UTF-8 encoding para evitar errores en Windows."""
+    def __init__(self, stream=None):
+        super().__init__(stream)
+    
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            stream = self.stream
+            # Intentar escribir con UTF-8, si falla usar errors='replace'
+            if hasattr(stream, 'buffer'):
+                stream.buffer.write(msg.encode('utf-8', errors='replace'))
+                stream.buffer.write(self.terminator.encode('utf-8', errors='replace'))
+            else:
+                stream.write(msg + self.terminator)
+            self.flush()
+        except (UnicodeEncodeError, UnicodeError):
+            # Si aún falla, reemplazar caracteres problemáticos
+            try:
+                msg = self.format(record)
+                msg = msg.encode('ascii', errors='replace').decode('ascii')
+                stream.write(msg + self.terminator)
+                self.flush()
+            except Exception:
+                self.handleError(record)
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('dividend_hunter.log'),
-        logging.StreamHandler(sys.stdout)
+        logging.FileHandler('dividend_hunter.log', encoding='utf-8', errors='replace'),
+        UTF8StreamHandler(sys.stdout)
     ]
 )
 
@@ -207,7 +234,7 @@ class DataValidator:
             logger.warning(f"Yield fuera de rango: {yield_val} para {metrics.get('symbol')}")
             return False
         
-        logger.debug(f"✅ Métricas validadas correctamente para {metrics.get('symbol')}")
+        logger.debug(f"[OK] Métricas validadas correctamente para {metrics.get('symbol')}")
         return True
 
 

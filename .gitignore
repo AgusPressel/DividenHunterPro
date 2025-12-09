@@ -1,0 +1,237 @@
+# ============================================================================
+# DIVIDEND HUNTER PRO - .gitignore
+# ============================================================================
+# Archivos y directorios que no deben ser rastreados por Git
+# ============================================================================
+
+# ============================================================================
+# Python
+# ============================================================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# ============================================================================
+# Entornos Virtuales
+# ============================================================================
+# Virtualenv
+venv/
+ENV/
+env/
+.venv/
+.ENV/
+.env/
+
+# ============================================================================
+# IDEs y Editores
+# ============================================================================
+# VSCode
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ============================================================================
+# Archivos del Proyecto
+# ============================================================================
+# Base de datos SQLite
+*.db
+*.sqlite
+*.sqlite3
+dividend_hunter.db
+
+# Archivos de log
+*.log
+dividend_hunter.log
+
+# Cache del módulo de importación
+cache/
+*.cache
+symbols_cache.json
+
+# Archivos Excel generados
+acciones_*.xlsx
+acciones_*.txt
+*.xlsx
+!ejemplo_tickers.txt  # Mantener el archivo de ejemplo
+
+# Archivos temporales
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# ============================================================================
+# Streamlit
+# ============================================================================
+# Archivos de configuración local de Streamlit
+.streamlit/secrets.toml
+.streamlit/config.local.toml
+
+# ============================================================================
+# Sistema Operativo
+# ============================================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ============================================================================
+# Archivos de Configuración Sensibles
+# ============================================================================
+# Variables de entorno
+.env
+.env.local
+.env.*.local
+
+# Credenciales y secretos
+secrets.json
+credentials.json
+config.local.py
+*.key
+*.pem
+*.p12
+*.pfx
+
+# ============================================================================
+# Archivos de Descarga y Exportación
+# ============================================================================
+# Archivos descargados o exportados por la aplicación
+downloads/
+exports/
+output/
+*.csv
+*.xlsx
+*.xls
+!ejemplo_tickers.txt  # Mantener archivos de ejemplo
+
+# ============================================================================
+# Archivos de Jupyter Notebook (si se usan)
+# ============================================================================
+.ipynb_checkpoints
+*.ipynb
+
+# ============================================================================
+# Archivos de Análisis y Reportes Generados
+# ============================================================================
+reports/
+analysis/
+*.pdf
+*.html
+
+# ============================================================================
+# Archivos de Backup
+# ============================================================================
+*.bak
+*.backup
+*_backup.*
+*_old.*
+
+# ============================================================================
+# Otros
+# ============================================================================
+# Archivos de OneDrive (si se sincroniza)
+~$*
+
+# Archivos de Microsoft Office temporales
+~$*.docx
+~$*.xlsx
+~$*.pptx
+

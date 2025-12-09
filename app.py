@@ -27,6 +27,8 @@ from typing import List, Dict, Optional
 import sys
 import os
 import logging
+import yfinance as yf
+from datetime import datetime
 
 # Importar todos los módulos
 from modulo1_ingenieria_datos import DividendAnalyzer
@@ -36,11 +38,40 @@ from modulo5_refactorizacion import (
     ErrorHandler, Config, DataValidator, 
     format_currency, format_percentage
 )
+from modulo6_importar_acciones import StockImporter, get_all_stocks, search_stocks
 
-# Configurar logging
+# Configurar logging con UTF-8 para evitar errores de codificación en Windows
+# Usar un handler personalizado que maneje UTF-8 correctamente
+class UTF8StreamHandler(logging.StreamHandler):
+    """Handler que fuerza UTF-8 encoding para evitar errores en Windows."""
+    def __init__(self, stream=None):
+        super().__init__(stream)
+    
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            stream = self.stream
+            # Intentar escribir con UTF-8, si falla usar errors='replace'
+            if hasattr(stream, 'buffer'):
+                stream.buffer.write(msg.encode('utf-8', errors='replace'))
+                stream.buffer.write(self.terminator.encode('utf-8', errors='replace'))
+            else:
+                stream.write(msg + self.terminator)
+            self.flush()
+        except (UnicodeEncodeError, UnicodeError):
+            # Si aún falla, reemplazar caracteres problemáticos
+            try:
+                msg = self.format(record)
+                msg = msg.encode('ascii', errors='replace').decode('ascii')
+                stream.write(msg + self.terminator)
+                self.flush()
+            except Exception:
+                self.handleError(record)
+
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[UTF8StreamHandler(sys.stdout)]
 )
 logger = logging.getLogger(__name__)
 
@@ -123,7 +154,8 @@ class DividendHunterApp:
             "Selecciona una opción:",
             ["🏠 Inicio", "📥 Importar Excel", "🔍 Buscar Activo", 
              "📊 Ver Activos", "📈 Visualizaciones", "ℹ️ Estadísticas", 
-             "🔧 Mantenimiento", "🏪 Gestión de Plataformas", "💼 Constructor de Portfolio"]
+             "🔧 Mantenimiento", "🏪 Gestión de Plataformas", "💼 Constructor de Portfolio",
+             "📦 Importar Acciones Disponibles"]
         )
         
         st.sidebar.markdown("---")
@@ -237,7 +269,7 @@ class DividendHunterApp:
                     logger.info(f"Guardando {ticker} en BD...")
                     if self.db.upsert_asset(metrics):
                         success_count += 1
-                        logger.info(f"✅ {ticker} guardado exitosamente")
+                        logger.info(f"[OK] {ticker} guardado exitosamente")
                         results.append({
                             'Ticker': ticker,
                             'Estado': '✅ Exitoso',
@@ -247,7 +279,7 @@ class DividendHunterApp:
                         })
                     else:
                         error_count += 1
-                        logger.error(f"❌ Error al guardar {ticker} en BD")
+                        logger.error(f"[ERROR] Error al guardar {ticker} en BD")
                         results.append({
                             'Ticker': ticker,
                             'Estado': '❌ Error BD',
@@ -320,12 +352,12 @@ class DividendHunterApp:
                             # Guardar en session_state para que persista después del re-render
                             st.session_state.last_searched_symbol = symbol
                             st.session_state.last_searched_metrics = metrics
-                            logger.info(f"✅ Búsqueda exitosa para {symbol}, métricas guardadas en session_state")
+                            logger.info(f"[OK] Búsqueda exitosa para {symbol}, métricas guardadas en session_state")
                         else:
                             st.error(f"❌ No se pudieron obtener datos válidos para {symbol}")
                             st.session_state.last_searched_symbol = None
                             st.session_state.last_searched_metrics = None
-                            logger.warning(f"❌ Métricas inválidas para {symbol}")
+                            logger.warning(f"[WARNING] Métricas inválidas para {symbol}")
                             
                     except Exception as e:
                         logger.error(f"Error buscando {symbol}: {e}", exc_info=True)
@@ -390,15 +422,15 @@ class DividendHunterApp:
                     try:
                         if self.db.upsert_asset(metrics):
                             st.success(f"✅ {symbol} guardado correctamente en la base de datos")
-                            logger.info(f"✅ {symbol} guardado exitosamente por el usuario")
+                            logger.info(f"[OK] {symbol} guardado exitosamente por el usuario")
                             # Opcional: limpiar session_state después de guardar
                             # st.session_state.last_searched_metrics = None
                         else:
                             st.error("❌ Error al guardar. Revisa los logs para más detalles.")
-                            logger.error(f"❌ Fallo al guardar {symbol} por el usuario")
+                            logger.error(f"[ERROR] Fallo al guardar {symbol} por el usuario")
                     except Exception as e:
                         st.error(f"❌ Error: {str(e)}")
-                        logger.error(f"❌ Excepción al guardar {symbol}: {e}", exc_info=True)
+                        logger.error(f"[ERROR] Excepción al guardar {symbol}: {e}", exc_info=True)
     
     def view_assets_page(self):
         """Página para ver activos guardados."""
@@ -792,7 +824,7 @@ class DividendHunterApp:
                             'Yield': format_percentage(metrics.get('dividend_yield', 0)),
                             'Frecuencia': metrics.get('dividend_frequency', 'N/A')
                         })
-                        logger.info(f"✅ Actualizado: {symbol}")
+                        logger.info(f"[OK] Actualizado: {symbol}")
                     else:
                         error_count += 1
                         results.append({
@@ -811,7 +843,7 @@ class DividendHunterApp:
                         'Yield': 'N/A',
                         'Frecuencia': 'N/A'
                     })
-                    logger.warning(f"❌ No se pudieron obtener datos para {symbol}")
+                    logger.warning(f"[WARNING] No se pudieron obtener datos para {symbol}")
                     
             except Exception as e:
                 logger.error(f"Error actualizando {symbol}: {e}", exc_info=True)
@@ -957,7 +989,7 @@ class DividendHunterApp:
                                 'Yield': format_percentage(metrics.get('dividend_yield', 0)),
                                 'Frecuencia': metrics.get('dividend_frequency', 'N/A')
                             })
-                            logger.info(f"✅ Nuevo activo agregado: {symbol}")
+                            logger.info(f"[OK] Nuevo activo agregado: {symbol}")
                         else:
                             error_count += 1
                             results.append({
@@ -2350,6 +2382,282 @@ class DividendHunterApp:
             summary_df = pd.DataFrame(summary_data)
             st.dataframe(summary_df, use_container_width=True)
     
+    def import_stocks_page(self):
+        """Página para importar todas las acciones disponibles desde yfinance."""
+        st.header("📦 Importar Acciones Disponibles")
+        
+        st.markdown("""
+        Esta herramienta te permite obtener listas completas de acciones disponibles
+        en yfinance desde diferentes exchanges (NASDAQ, NYSE, etc.).
+        
+        **Características:**
+        - 📋 Obtiene listas de símbolos de múltiples exchanges
+        - ✅ Valida símbolos con yfinance
+        - 🔍 Busca acciones por nombre o símbolo
+        - 📊 Filtra por sector
+        - 💾 Exporta a archivos de texto o Excel
+        - ⚡ Usa cache para evitar descargas repetidas
+        """)
+        
+        # Inicializar el importador
+        importer = StockImporter()
+        
+        # Tabs para diferentes funcionalidades
+        tab1, tab2, tab3, tab4 = st.tabs([
+            "📥 Obtener Todas las Acciones",
+            "🔍 Buscar Acciones",
+            "📊 Filtrar por Sector",
+            "💾 Exportar Listas"
+        ])
+        
+        with tab1:
+            st.subheader("Obtener Todas las Acciones Disponibles")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                validate_symbols = st.checkbox(
+                    "Validar símbolos con yfinance",
+                    value=False,
+                    help="Más lento pero más preciso. Valida cada símbolo antes de incluirlo."
+                )
+            
+            with col2:
+                use_cache = st.checkbox(
+                    "Usar cache",
+                    value=True,
+                    help="Usa cache local si está disponible (más rápido)"
+                )
+            
+            exchanges = st.multiselect(
+                "Seleccionar exchanges:",
+                ["NASDAQ", "NYSE"],
+                default=["NASDAQ", "NYSE"]
+            )
+            
+            if st.button("🚀 Obtener Acciones", type="primary", use_container_width=True):
+                if not exchanges:
+                    st.warning("⚠️ Por favor selecciona al menos un exchange")
+                else:
+                    with st.spinner("Obteniendo acciones disponibles..."):
+                        try:
+                            symbols = importer.get_all_available_symbols(
+                                validate=validate_symbols,
+                                use_cache=use_cache,
+                                exchanges=exchanges
+                            )
+                            
+                            if symbols:
+                                st.success(f"✅ Obtenidas {len(symbols)} acciones disponibles")
+                                
+                                # Guardar en session_state para usar en otros tabs
+                                st.session_state.imported_symbols = symbols
+                                
+                                # Mostrar preview
+                                st.markdown("### 📋 Vista Previa")
+                                preview_df = pd.DataFrame({
+                                    'Símbolo': symbols[:50],
+                                    'Total': [len(symbols)] * min(50, len(symbols))
+                                })
+                                st.dataframe(preview_df, use_container_width=True)
+                                
+                                if len(symbols) > 50:
+                                    st.info(f"Mostrando primeros 50 de {len(symbols)} símbolos. Usa la exportación para obtener la lista completa.")
+                                
+                                # Métricas
+                                col1, col2, col3 = st.columns(3)
+                                with col1:
+                                    st.metric("Total Símbolos", len(symbols))
+                                with col2:
+                                    st.metric("Exchanges", len(exchanges))
+                                with col3:
+                                    cache_status = "✅ Con cache" if use_cache else "❌ Sin cache"
+                                    st.metric("Cache", cache_status)
+                            else:
+                                st.warning("⚠️ No se encontraron símbolos. Intenta con otras opciones.")
+                                
+                        except Exception as e:
+                            logger.error(f"[ERROR] Error obteniendo acciones: {e}", exc_info=True)
+                            st.error(f"❌ Error al obtener acciones: {str(e)}")
+        
+        with tab2:
+            st.subheader("Buscar Acciones")
+            
+            # Usar símbolos importados si están disponibles
+            if 'imported_symbols' in st.session_state:
+                st.info(f"💡 Usando {len(st.session_state.imported_symbols)} símbolos importados previamente")
+                search_symbols = st.session_state.imported_symbols
+            else:
+                st.warning("⚠️ Primero obtén las acciones en la pestaña 'Obtener Todas las Acciones'")
+                search_symbols = None
+            
+            search_query = st.text_input(
+                "Buscar por símbolo o nombre:",
+                placeholder="Ej: AAPL, Apple, Technology...",
+                help="Busca acciones que coincidan con tu búsqueda"
+            )
+            
+            if st.button("🔍 Buscar", type="primary", use_container_width=True):
+                if not search_query:
+                    st.warning("⚠️ Por favor ingresa un término de búsqueda")
+                else:
+                    with st.spinner(f"Buscando '{search_query}'..."):
+                        try:
+                            results = importer.search_symbols(search_query, search_symbols)
+                            
+                            if results:
+                                st.success(f"✅ Encontradas {len(results)} coincidencias")
+                                
+                                # Mostrar resultados con información adicional
+                                results_data = []
+                                for symbol in results[:100]:  # Limitar a 100 para no sobrecargar
+                                    try:
+                                        ticker = yf.Ticker(symbol)
+                                        info = ticker.info
+                                        results_data.append({
+                                            'Símbolo': symbol,
+                                            'Nombre': info.get('longName', 'N/A'),
+                                            'Sector': info.get('sector', 'N/A'),
+                                            'Precio': f"${info.get('currentPrice', 'N/A')}"
+                                        })
+                                    except:
+                                        results_data.append({
+                                            'Símbolo': symbol,
+                                            'Nombre': 'N/A',
+                                            'Sector': 'N/A',
+                                            'Precio': 'N/A'
+                                        })
+                                
+                                if results_data:
+                                    results_df = pd.DataFrame(results_data)
+                                    st.dataframe(results_df, use_container_width=True)
+                                
+                                if len(results) > 100:
+                                    st.info(f"Mostrando primeros 100 de {len(results)} resultados")
+                                
+                                # Guardar resultados
+                                st.session_state.search_results = results
+                            else:
+                                st.warning(f"⚠️ No se encontraron coincidencias para '{search_query}'")
+                                
+                        except Exception as e:
+                            logger.error(f"[ERROR] Error buscando acciones: {e}", exc_info=True)
+                            st.error(f"❌ Error en la búsqueda: {str(e)}")
+        
+        with tab3:
+            st.subheader("Filtrar Acciones por Sector")
+            
+            # Usar símbolos importados si están disponibles
+            if 'imported_symbols' in st.session_state:
+                st.info(f"💡 Usando {len(st.session_state.imported_symbols)} símbolos importados previamente")
+                filter_symbols = st.session_state.imported_symbols
+            else:
+                st.warning("⚠️ Primero obtén las acciones en la pestaña 'Obtener Todas las Acciones'")
+                filter_symbols = None
+            
+            # Sectores comunes
+            common_sectors = [
+                "Technology", "Finance", "Healthcare", "Consumer Cyclical",
+                "Energy", "Real Estate", "Consumer Defensive", "Industrials",
+                "Communication Services", "Utilities", "Basic Materials"
+            ]
+            
+            selected_sector = st.selectbox(
+                "Seleccionar sector:",
+                [""] + common_sectors,
+                help="Filtra acciones por sector económico"
+            )
+            
+            if st.button("📊 Filtrar", type="primary", use_container_width=True):
+                if not selected_sector:
+                    st.warning("⚠️ Por favor selecciona un sector")
+                elif not filter_symbols:
+                    st.warning("⚠️ Primero obtén las acciones disponibles")
+                else:
+                    with st.spinner(f"Filtrando acciones del sector {selected_sector}..."):
+                        try:
+                            sector_symbols = importer.get_symbols_by_sector(selected_sector, filter_symbols)
+                            
+                            if sector_symbols:
+                                st.success(f"✅ Encontradas {len(sector_symbols)} acciones en el sector {selected_sector}")
+                                
+                                # Mostrar resultados
+                                sector_df = pd.DataFrame({
+                                    'Símbolo': sector_symbols
+                                })
+                                st.dataframe(sector_df, use_container_width=True)
+                                
+                                # Guardar resultados
+                                st.session_state.sector_results = sector_symbols
+                            else:
+                                st.info(f"ℹ️ No se encontraron acciones en el sector {selected_sector}")
+                                
+                        except Exception as e:
+                            logger.error(f"[ERROR] Error filtrando por sector: {e}", exc_info=True)
+                            st.error(f"❌ Error al filtrar: {str(e)}")
+        
+        with tab4:
+            st.subheader("Exportar Listas de Acciones")
+            
+            # Determinar qué lista exportar
+            export_options = {
+                "Todas las acciones importadas": "imported_symbols",
+                "Resultados de búsqueda": "search_results",
+                "Resultados por sector": "sector_results"
+            }
+            
+            available_exports = {k: v for k, v in export_options.items() 
+                               if v in st.session_state and st.session_state[v]}
+            
+            if not available_exports:
+                st.warning("⚠️ No hay listas disponibles para exportar. Primero obtén o busca acciones.")
+            else:
+                export_type = st.selectbox(
+                    "Seleccionar lista a exportar:",
+                    list(available_exports.keys())
+                )
+                
+                export_format = st.radio(
+                    "Formato de exportación:",
+                    ["📄 Archivo de Texto (.txt)", "📊 Excel (.xlsx)"]
+                )
+                
+                if st.button("💾 Exportar", type="primary", use_container_width=True):
+                    symbols_to_export = st.session_state[available_exports[export_type]]
+                    
+                    with st.spinner("Exportando..."):
+                        try:
+                            if "Texto" in export_format:
+                                filename = f"acciones_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+                                importer.export_symbols_to_file(symbols_to_export, filename)
+                                st.success(f"✅ Exportado a {filename}")
+                                
+                                # Ofrecer descarga
+                                with open(filename, 'r', encoding='utf-8') as f:
+                                    st.download_button(
+                                        "📥 Descargar archivo",
+                                        f.read(),
+                                        filename,
+                                        "text/plain"
+                                    )
+                            else:  # Excel
+                                filename = f"acciones_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+                                importer.export_symbols_to_excel(symbols_to_export, filename)
+                                st.success(f"✅ Exportado a {filename}")
+                                
+                                # Ofrecer descarga
+                                with open(filename, 'rb') as f:
+                                    st.download_button(
+                                        "📥 Descargar archivo Excel",
+                                        f.read(),
+                                        filename,
+                                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                                    )
+                                
+                        except Exception as e:
+                            logger.error(f"[ERROR] Error exportando: {e}", exc_info=True)
+                            st.error(f"❌ Error al exportar: {str(e)}")
+    
     def run(self):
         """Método principal que ejecuta la aplicación."""
         try:
@@ -2391,6 +2699,9 @@ class DividendHunterApp:
             
             elif page == "💼 Constructor de Portfolio":
                 self.portfolio_builder_page()
+            
+            elif page == "📦 Importar Acciones Disponibles":
+                self.import_stocks_page()
                 
         except Exception as e:
             logger.error(f"Error en ejecución: {e}", exc_info=True)

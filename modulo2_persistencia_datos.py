@@ -147,11 +147,11 @@ class DatabaseManager:
             """)
             
             self.conn.commit()
-            logger.info(f"✅ Base de datos inicializada: {self.db_path}")
+            logger.info(f"[OK] Base de datos inicializada: {self.db_path}")
             print(f"✅ Base de datos inicializada: {self.db_path}")
             
         except sqlite3.Error as e:
-            logger.error(f"❌ Error inicializando base de datos: {e}")
+            logger.error(f"[ERROR] Error inicializando base de datos: {e}")
             print(f"❌ Error inicializando base de datos: {e}")
             raise
     
@@ -171,7 +171,7 @@ class DatabaseManager:
         try:
             # Validar que tenemos los datos necesarios
             if not asset_data or 'symbol' not in asset_data:
-                logger.error("❌ Datos de activo inválidos: falta 'symbol'")
+                logger.error("[ERROR] Datos de activo inválidos: falta 'symbol'")
                 return False
             
             symbol = asset_data['symbol']
@@ -247,16 +247,16 @@ class DatabaseManager:
             verified = cursor.fetchone() is not None
             
             if verified:
-                logger.info(f"✅ {operation} activo: {symbol} (verificado en BD)")
+                logger.info(f"[OK] {operation} activo: {symbol} (verificado en BD)")
                 print(f"✅ {operation} activo: {symbol}")
                 return True
             else:
-                logger.error(f"❌ Error: No se pudo verificar el guardado de {symbol}")
+                logger.error(f"[ERROR] Error: No se pudo verificar el guardado de {symbol}")
                 print(f"❌ Error: No se pudo verificar el guardado de {symbol}")
                 return False
             
         except sqlite3.Error as e:
-            error_msg = f"❌ Error en upsert para {asset_data.get('symbol', 'N/A')}: {e}"
+            error_msg = f"[ERROR] Error en upsert para {asset_data.get('symbol', 'N/A')}: {e}"
             logger.error(error_msg, exc_info=True)
             print(error_msg)
             try:
@@ -265,7 +265,7 @@ class DatabaseManager:
                 pass
             return False
         except Exception as e:
-            error_msg = f"❌ Error inesperado en upsert para {asset_data.get('symbol', 'N/A')}: {e}"
+            error_msg = f"[ERROR] Error inesperado en upsert para {asset_data.get('symbol', 'N/A')}: {e}"
             logger.error(error_msg, exc_info=True)
             print(error_msg)
             try:
@@ -361,7 +361,7 @@ class DatabaseManager:
             rows = cursor.fetchall()
             return [row['symbol'] for row in rows]
         except sqlite3.Error as e:
-            logger.error(f"❌ Error obteniendo símbolos: {e}")
+            logger.error(f"[ERROR] Error obteniendo símbolos: {e}")
             return []
     
     def delete_asset(self, symbol: str) -> bool:
@@ -453,14 +453,14 @@ class DatabaseManager:
             self.conn.commit()
             
             if cursor.rowcount > 0:
-                logger.info(f"✅ Plataformas actualizadas para {symbol}: {platforms_str}")
+                logger.info(f"[OK] Plataformas actualizadas para {symbol}: {platforms_str}")
                 return True
             else:
-                logger.warning(f"⚠️ No se encontró el activo {symbol} para actualizar plataformas")
+                logger.warning(f"[WARNING] No se encontró el activo {symbol} para actualizar plataformas")
                 return False
                 
         except sqlite3.Error as e:
-            logger.error(f"❌ Error actualizando plataformas para {symbol}: {e}")
+            logger.error(f"[ERROR] Error actualizando plataformas para {symbol}: {e}")
             return False
     
     def get_platforms(self, symbol: str) -> List[str]:
@@ -485,7 +485,7 @@ class DatabaseManager:
             return []
             
         except sqlite3.Error as e:
-            logger.error(f"❌ Error obteniendo plataformas para {symbol}: {e}")
+            logger.error(f"[ERROR] Error obteniendo plataformas para {symbol}: {e}")
             return []
     
     def get_all_platforms(self) -> List[str]:
@@ -510,7 +510,7 @@ class DatabaseManager:
             return sorted(list(all_platforms))
             
         except sqlite3.Error as e:
-            logger.error(f"❌ Error obteniendo todas las plataformas: {e}")
+            logger.error(f"[ERROR] Error obteniendo todas las plataformas: {e}")
             return []
     
     def _format_payment_months(self, months: List[int]) -> str:
@@ -600,10 +600,10 @@ class DatabaseManager:
             return result
             
         except sqlite3.Error as e:
-            logger.error(f"❌ Error obteniendo activos por mes de pago: {e}")
+            logger.error(f"[ERROR] Error obteniendo activos por mes de pago: {e}")
             return []
         except Exception as e:
-            logger.error(f"❌ Error inesperado obteniendo activos por mes de pago: {e}")
+            logger.error(f"[ERROR] Error inesperado obteniendo activos por mes de pago: {e}")
             return []
     
     def get_assets_by_platform(self, platform: str) -> List[Dict]:
@@ -640,7 +640,7 @@ class DatabaseManager:
             return assets
             
         except sqlite3.Error as e:
-            logger.error(f"❌ Error obteniendo activos por plataforma: {e}")
+            logger.error(f"[ERROR] Error obteniendo activos por plataforma: {e}")
             return []
     
     def save_portfolio(self, name: str, description: str, selected_symbols: List[str], 
@@ -695,11 +695,11 @@ class DatabaseManager:
             return True
             
         except sqlite3.Error as e:
-            logger.error(f"❌ Error guardando portfolio: {e}")
+            logger.error(f"[ERROR] Error guardando portfolio: {e}")
             self.conn.rollback()
             return False
         except Exception as e:
-            logger.error(f"❌ Error inesperado guardando portfolio: {e}")
+            logger.error(f"[ERROR] Error inesperado guardando portfolio: {e}")
             return False
     
     def get_all_portfolios(self) -> List[Dict]:
@@ -733,10 +733,10 @@ class DatabaseManager:
             return portfolios
             
         except sqlite3.Error as e:
-            logger.error(f"❌ Error obteniendo portfolios: {e}")
+            logger.error(f"[ERROR] Error obteniendo portfolios: {e}")
             return []
         except Exception as e:
-            logger.error(f"❌ Error inesperado obteniendo portfolios: {e}")
+            logger.error(f"[ERROR] Error inesperado obteniendo portfolios: {e}")
             return []
     
     def get_portfolio(self, name: str) -> Optional[Dict]:
@@ -769,10 +769,10 @@ class DatabaseManager:
             return None
             
         except sqlite3.Error as e:
-            logger.error(f"❌ Error obteniendo portfolio: {e}")
+            logger.error(f"[ERROR] Error obteniendo portfolio: {e}")
             return None
         except Exception as e:
-            logger.error(f"❌ Error inesperado obteniendo portfolio: {e}")
+            logger.error(f"[ERROR] Error inesperado obteniendo portfolio: {e}")
             return None
     
     def delete_portfolio(self, name: str) -> bool:
@@ -797,11 +797,11 @@ class DatabaseManager:
             return False
             
         except sqlite3.Error as e:
-            logger.error(f"❌ Error eliminando portfolio: {e}")
+            logger.error(f"[ERROR] Error eliminando portfolio: {e}")
             self.conn.rollback()
             return False
         except Exception as e:
-            logger.error(f"❌ Error inesperado eliminando portfolio: {e}")
+            logger.error(f"[ERROR] Error inesperado eliminando portfolio: {e}")
             return False
     
     def get_debug_info(self) -> Dict:
