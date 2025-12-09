@@ -1,0 +1,41 @@
+# ============================================================================
+# EJEMPLO DE TICKERS PARA PROBAR LA APLICACIÓN
+# ============================================================================
+#
+# Puedes copiar estos tickers a un archivo Excel (primera columna)
+# o usarlos directamente en la búsqueda individual.
+#
+# ============================================================================
+
+# REITs (Real Estate Investment Trusts) - Típicamente pagan dividendos mensuales
+O
+STAG
+AGNC
+MAIN
+
+# Acciones tradicionales - Típicamente pagan dividendos trimestrales
+AAPL
+MSFT
+JNJ
+PG
+KO
+T
+VZ
+XOM
+CVX
+
+# ETFs con dividendos
+SPY
+VOO
+SCHD
+VYM
+
+# ============================================================================
+# INSTRUCCIONES:
+# ============================================================================
+# 1. Crea un archivo Excel (.xlsx)
+# 2. Pega estos símbolos en la primera columna (columna A)
+# 3. Guarda el archivo
+# 4. En la app, ve a "Importar Excel" y sube el archivo
+# ============================================================================
+

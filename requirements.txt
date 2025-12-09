@@ -1,0 +1,45 @@
+# ============================================================================
+# DIVIDEND HUNTER PRO - DEPENDENCIAS
+# ============================================================================
+# 
+# Este archivo contiene todas las dependencias necesarias para ejecutar
+# la aplicación Dividend Hunter Pro.
+#
+# INSTALACIÓN:
+# pip install -r requirements.txt
+#
+# ============================================================================
+
+# Core de Python (ya incluido en Python 3.14+)
+# datetime, sqlite3, typing, logging, io, sys, os
+
+# Análisis de datos financieros
+yfinance>=0.2.28
+
+# Manipulación de datos
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Base de datos
+# sqlite3 viene incluido en Python estándar
+
+# Interfaz de usuario
+streamlit>=1.28.0
+
+# Visualización
+plotly>=5.17.0
+
+# Procesamiento de Excel
+openpyxl>=3.1.2
+
+# Utilidades adicionales (opcionales pero recomendadas)
+requests>=2.31.0  # Para yfinance (dependencia indirecta)
+
+# ============================================================================
+# NOTAS DE VERSIÓN:
+# ============================================================================
+# - Python 3.14 o versión estable reciente (3.10+ recomendado)
+# - Todas las versiones son mínimas, se recomienda usar las más recientes
+# - Para producción, considera usar versiones específicas (==) en lugar de >=
+# ============================================================================
+
